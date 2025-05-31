@@ -348,10 +348,10 @@ export default function HomePage() {
                 transition={{ delay: 0.2 }}
               >
                 <span className="bg-gradient-to-r from-red-500 via-orange-500 to-red-600 dark:from-red-400 dark:via-orange-400 dark:to-red-500 bg-clip-text text-transparent">
-                  TRAIN
+                  TRACK FITNESS IN
                 </span>
                 <br />
-                <span className="text-gray-600 dark:text-gray-400">SMARTER</span>
+                <span className="text-gray-600 dark:text-gray-400">A SMARTER WAY</span>
               </motion.h1>
 
               <motion.p
@@ -411,47 +411,42 @@ export default function HomePage() {
               transition={{ duration: 0.8, delay: 0.3 }}
               className="relative order-first lg:order-last"
             >
-              <div className="relative mx-auto w-64 sm:w-72 lg:w-80 h-80 sm:h-88 lg:h-96 bg-gray-900 dark:bg-white rounded-3xl p-2 shadow-2xl">
-                <div className="w-full h-full bg-white dark:bg-gray-900 rounded-2xl overflow-hidden">
-                  {/* Mock App Interface */}
-                  <div className="p-4 sm:p-6">
-                    <div className="flex items-center justify-between mb-4 sm:mb-6">
-                      <div className="w-6 h-6 sm:w-8 sm:h-8 bg-gray-900 dark:bg-white rounded-lg"></div>
-                      <div className="text-gray-900 dark:text-white font-bold text-sm sm:text-base">AITHLETIQ</div>
-                      <div className="w-6 h-6 sm:w-8 sm:h-8 bg-gray-200 dark:bg-gray-800 rounded-full"></div>
-                    </div>
-
-                    <div className="space-y-3 sm:space-y-4">
-                      <div className="h-16 sm:h-20 bg-gray-100 dark:bg-gray-900 rounded-xl flex items-center justify-center">
-                        <BarChart3 className="w-6 h-6 sm:w-8 sm:h-8 text-gray-400" />
-                      </div>
-                      <div className="h-12 sm:h-16 bg-gray-100 dark:bg-gray-900 rounded-xl flex items-center justify-center">
-                        <Activity className="w-5 h-5 sm:w-6 sm:h-6 text-gray-400" />
-                      </div>
-                      <div className="grid grid-cols-2 gap-2">
-                        <div className="h-10 sm:h-12 bg-gray-100 dark:bg-gray-900 rounded-lg"></div>
-                        <div className="h-10 sm:h-12 bg-gray-100 dark:bg-gray-900 rounded-lg"></div>
-                      </div>
-                    </div>
-                  </div>
+              {/* Main Screenshot Container - MODIFIED WIDTHS, ORIGINAL HEIGHTS */}
+              <div 
+                className="relative mx-auto w-60 sm:w-64 lg:w-72 max-w-full h-[30rem] sm:h-[34rem] lg:h-[36rem] bg-gray-900 dark:bg-white rounded-3xl p-2 shadow-2xl"
+              >
+                <div className="w-full h-full bg-white dark:bg-gray-900 rounded-2xl overflow-hidden flex items-center justify-center">
+                  {/* Screenshot image goes here */}
+                  <img
+                    src="YOUR_IMAGE_PATH_GOES_HERE"
+                    alt="App Screenshot"
+                    className="w-full h-full object-cover rounded-2xl"
+                  />
                 </div>
               </div>
 
-              {/* Floating Elements */}
+              {/* Floating Dumbbell - ADJUSTED POSITION AND SIZE SLIGHTLY */}
               <motion.div
-                animate={{ y: [0, -10, 0] }}
+                animate={{ y: [0, -8, 0] }} // Slightly less vertical movement
                 transition={{ duration: 3, repeat: Number.POSITIVE_INFINITY }}
-                className="absolute -top-2 sm:-top-4 -right-2 sm:-right-4 w-12 h-12 sm:w-16 sm:h-16 bg-gradient-to-r from-red-500 to-orange-500 dark:from-red-400 dark:to-orange-400 rounded-2xl flex items-center justify-center"
+                className="absolute -top-3 -right-3 w-12 h-12 sm:w-14 sm:h-14 bg-gradient-to-r from-red-500 to-orange-500 dark:from-red-400 dark:to-orange-400 rounded-2xl flex items-center justify-center shadow-lg"
+                //  ^ Adjusted top/right to -3 from -4
+                //  ^ Adjusted base size to w-12 h-12 from w-14 h-14
               >
-                <Dumbbell className="w-6 h-6 sm:w-8 sm:h-8 text-white dark:text-black" />
+                <Dumbbell className="w-6 h-6 sm:w-7 sm:h-7 text-white dark:text-black" /> 
+                {/* ^ Adjusted base icon size to w-6 h-6 */}
               </motion.div>
 
+              {/* Floating Heart - ADJUSTED POSITION AND SIZE SLIGHTLY */}
               <motion.div
-                animate={{ y: [0, 10, 0] }}
+                animate={{ y: [0, 8, 0] }} // Slightly less vertical movement
                 transition={{ duration: 4, repeat: Number.POSITIVE_INFINITY }}
-                className="absolute -bottom-2 sm:-bottom-4 -left-2 sm:-left-4 w-10 h-10 sm:w-12 sm:h-12 bg-gray-200 dark:bg-gray-800 rounded-full flex items-center justify-center"
+                className="absolute -bottom-3 -left-3 w-10 h-10 sm:w-12 sm:h-12 bg-gray-200 dark:bg-gray-800 rounded-full flex items-center justify-center shadow-md"
+                //  ^ Adjusted bottom/left to -3 from -4
+                //  ^ Adjusted base size to w-10 h-10 from w-12 h-12
               >
                 <Heart className="w-5 h-5 sm:w-6 sm:h-6 text-gray-600 dark:text-gray-400" />
+                {/* ^ Adjusted base icon size to w-5 h-5 */}
               </motion.div>
             </motion.div>
           </div>
