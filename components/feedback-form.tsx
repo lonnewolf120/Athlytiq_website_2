@@ -91,6 +91,7 @@ export function FeedbackForm() {
                   <div className="flex justify-center space-x-1">
                     {[1, 2, 3, 4, 5].map((star) => (
                       <button
+                        title="Rate this"
                         key={star}
                         type="button"
                         onClick={() => setRating(star)}

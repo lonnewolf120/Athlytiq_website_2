@@ -131,6 +131,7 @@ export function ReviewsSection() {
           <div className="flex justify-center mt-8 space-x-2">
             {reviews.map((_, index) => (
               <button
+                title="Go to review"
                 key={index}
                 onClick={() => setCurrentReview(index)}
                 className={`w-3 h-3 rounded-full transition-all ${

@@ -105,6 +105,7 @@ export function HeroSection() {
             <div className="flex justify-center mt-8 space-x-2">
               {heroSlides.map((_, index) => (
                 <button
+                  title="Go to slide"
                   key={index}
                   onClick={() => setCurrentSlide(index)}
                   className={`w-3 h-3 rounded-full transition-all ${

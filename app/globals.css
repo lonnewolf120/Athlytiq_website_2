@@ -169,3 +169,7 @@ html {
   --muted-foreground: 0 0% 40%;
   --border: 0 0% 88%;
 }
+
+.snap-x-mandatory {
+  scroll-snap-type: x mandatory;
+}

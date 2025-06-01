@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState , useRef , useCallback } from "react"
 import { motion } from "framer-motion"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -46,9 +46,28 @@ import {
   MessageCircle,
   ArrowRight,
   AlertCircle,
+  ChevronLeft
 } from "lucide-react"
 import Link from "next/link"
 import { FitnessChatbot } from "@/components/fitness-chatbot";
+
+// Define a type for your fetched exercise demo data
+interface ExerciseDemo {
+  id: string;
+  title: string;
+  description?: string;
+  youtube_url: string;
+  category: string;
+  difficulty_level?: string;
+  duration_minutes?: number;
+}
+
+// Define a type for the grouped categories
+interface ExerciseCategoryGroup {
+  categoryName: string;
+  icon?: React.ElementType;
+  demos: ExerciseDemo[];
+}
 
 export default function HomePage() {
   const [feedback, setFeedback] = useState<UserFeedback[]>([])
@@ -58,12 +77,81 @@ export default function HomePage() {
   const [user, setUser] = useState<any>(null)
   const [submittingComment, setSubmittingComment] = useState(false)
   const [dbConnected, setDbConnected] = useState<boolean | null>(null)
+  const [exerciseDemoCategories, setExerciseDemoCategories] = useState<ExerciseCategoryGroup[]>([]);
+  const [loadingDemos, setLoadingDemos] = useState(true);
+
+  // Helper function
+  const getYouTubeVideoId = (url: string): string | null => {
+    if (!url) return null;
+    // This regex handles standard, short, and shorts URLs
+    const regExp = /(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/;
+    const match = url.match(regExp);
+    return match ? match[1] : null;
+  };
+
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const [activeVideos, setActiveVideos] = useState<{ [key: string]: string }>({});
 
   useEffect(() => {
     fetchData()
     checkUser()
     checkDatabaseConnection()
+    fetchExerciseDemos();
   }, [])
+
+  const fetchExerciseDemos = async () => {
+    setLoadingDemos(true);
+    try {
+      const { data, error } = await supabase
+        .from("exercise_demos")
+        .select("id, title, description, youtube_url, category, difficulty_level, duration_minutes")
+        .order("category", { ascending: true })
+        .order("created_at", { ascending: false, nullsFirst: false });
+
+      if (error) {
+        console.error("Error fetching exercise demos:", error);
+        setExerciseDemoCategories([]);
+      } else if (data) {
+        const grouped: { [key: string]: ExerciseDemo[] } = {};
+        const initialActiveVideos: { [key: string]: string } = {};
+        data.forEach(demo => {
+          if (!grouped[demo.category]) {
+            grouped[demo.category] = [];
+            // Set the first demo of each category as the initially active one
+            if (demo.youtube_url) {
+              initialActiveVideos[demo.category] = demo.youtube_url;
+            }
+          }
+          grouped[demo.category].push(demo);
+        });
+        
+        setActiveVideos(initialActiveVideos); // Set initial active videos
+
+        const iconMap: { [key: string]: React.ElementType } = {
+          "Strength": Dumbbell, "Cardio": Heart, "Flexibility": Activity, "Core": Zap, "Physical": Activity, // Added Physical
+        };
+
+        const categoryArray: ExerciseCategoryGroup[] = Object.keys(grouped).map(categoryName => ({
+          categoryName,
+          icon: iconMap[categoryName] || Activity,
+          demos: grouped[categoryName],
+        }));
+        setExerciseDemoCategories(categoryArray);
+      }
+    } catch (err) {
+      console.error("Client-side error fetching demos:", err);
+      setExerciseDemoCategories([]);
+    } finally {
+      setLoadingDemos(false);
+    }
+  };
+
+  const handleVideoSelect = useCallback((categoryName: string, videoUrl: string) => {
+    setActiveVideos(prev => ({
+      ...prev,
+      [categoryName]: videoUrl,
+    }));
+  }, []);
 
   const checkDatabaseConnection = async () => {
     const { connected } = await testDatabaseConnection()
@@ -196,28 +284,15 @@ export default function HomePage() {
     },
   ]
 
-  const exerciseCategories = [
-    {
-      title: "Strength Training",
-      exercises: ["Deadlifts", "Squats", "Bench Press", "Pull-ups", "Overhead Press"],
-      icon: Dumbbell,
-    },
-    {
-      title: "Cardio Workouts",
-      exercises: ["HIIT Training", "Running", "Cycling", "Swimming", "Jump Rope"],
-      icon: Heart,
-    },
-    {
-      title: "Flexibility",
-      exercises: ["Yoga Flows", "Stretching", "Foam Rolling", "Pilates", "Mobility"],
-      icon: Activity,
-    },
-    {
-      title: "Functional",
-      exercises: ["Kettlebells", "Battle Ropes", "Box Jumps", "Burpees", "Calisthenics"],
-      icon: Zap,
-    },
-  ]
+  const scrollDemos = (direction: 'left' | 'right') => {
+    if (scrollContainerRef.current) {
+      const scrollAmount = scrollContainerRef.current.offsetWidth * 0.8; // Scroll by 80% of visible width
+      scrollContainerRef.current.scrollBy({
+        left: direction === 'left' ? -scrollAmount : scrollAmount,
+        behavior: 'smooth',
+      });
+    }
+  };
 
   // Mock feedback data if database is empty
   const mockFeedback = [
@@ -332,17 +407,47 @@ export default function HomePage() {
         </div>
       )}
 
-      {/* Hero Section */}
       <section
         id="home"
-        className="relative pt-20 sm:pt-24 lg:pt-32 pb-12 sm:pb-16 lg:pb-20 px-4 sm:px-6 lg:px-8 min-h-screen flex items-center"
+        className="relative pt-20 sm:pt-24 lg:pt-32 pb-12 sm:pb-16 lg:pb-20 px-4 sm:px-6 lg:px-8 min-h-screen flex items-center overflow-hidden"
       >
-        <div className="container mx-auto relative z-10">
+        {/* Background Video — Light Mode */}
+        <video
+          autoPlay
+          loop
+          muted
+          playsInline
+          className="absolute inset-0 w-full h-full object-cover opacity-30 z-0 block dark:hidden pointer-events-none"
+        >
+          <source src="abc" type="video/mp4" />
+          Your browser does not support the video tag.
+        </video>
+
+        {/* Background Video — Dark Mode */}
+        <video
+          autoPlay
+          loop
+          muted
+          playsInline
+          className="absolute inset-0 w-full h-full object-cover opacity-30 z-0 hidden dark:block pointer-events-none"
+        >
+          <source src="/Video_dark.mp4" type="video/mp4" />
+          Your browser does not support the video tag.
+        </video>
+
+        {/* Particle Layer */}
+        <div className="absolute inset-0 z-10">
+          {/* ⬇️ Place your Particle Component here */}
+          {/* <ParticlesComponent /> or Particles.js canvas etc. */}
+        </div>
+
+        {/* Main Content */}
+        <div className="container mx-auto relative z-20">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 items-center">
             {/* Left Content */}
             <motion.div initial={{ opacity: 0, x: -50 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.8 }}>
               <motion.h1
-                className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-black mb-4 sm:mb-6 leading-tight"
+                className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-black mb-4 sm:mb-6 leading-tight drop-shadow-md"
                 initial={{ opacity: 0, y: 30 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.2 }}
@@ -358,7 +463,7 @@ export default function HomePage() {
                 initial={{ opacity: 0, y: 30 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.4 }}
-                className="text-lg sm:text-xl lg:text-2xl mb-6 sm:mb-8 text-gray-600 dark:text-gray-300 max-w-lg"
+                className="text-lg sm:text-xl lg:text-2xl mb-6 sm:mb-8 text-gray-600 dark:text-gray-300 max-w-lg drop-shadow-sm"
               >
                 AI-powered fitness tracking that adapts to your goals, analyzes your form, and optimizes your nutrition.
               </motion.p>
@@ -395,7 +500,7 @@ export default function HomePage() {
                 transition={{ delay: 0.8 }}
                 className="grid grid-cols-2 gap-4 sm:gap-8"
               >
-                {stats.slice(0, 2).map((stat, index) => (
+                {stats.slice(0, 2).map((stat) => (
                   <div key={stat.label} className="text-center lg:text-left">
                     <h3 className="text-2xl sm:text-3xl font-bold mb-1">{stat.value}</h3>
                     <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400">{stat.label}</p>
@@ -411,42 +516,32 @@ export default function HomePage() {
               transition={{ duration: 0.8, delay: 0.3 }}
               className="relative order-first lg:order-last"
             >
-              {/* Main Screenshot Container - MODIFIED WIDTHS, ORIGINAL HEIGHTS */}
-              <div 
-                className="relative mx-auto w-60 sm:w-64 lg:w-72 max-w-full h-[30rem] sm:h-[34rem] lg:h-[36rem] bg-gray-900 dark:bg-white rounded-3xl p-2 shadow-2xl"
-              >
+              <div className="relative mx-auto w-80 sm:w-72 lg:w-80 max-w-full h-[35rem] sm:h-[34rem] lg:h-[40rem] bg-gray-900 dark:bg-white rounded-3xl p-2 shadow-2xl">
                 <div className="w-full h-full bg-white dark:bg-gray-900 rounded-2xl overflow-hidden flex items-center justify-center">
-                  {/* Screenshot image goes here */}
                   <img
-                    src="YOUR_IMAGE_PATH_GOES_HERE"
+                    src="/App_screenshot.jpg"
                     alt="App Screenshot"
                     className="w-full h-full object-cover rounded-2xl"
                   />
                 </div>
               </div>
 
-              {/* Floating Dumbbell - ADJUSTED POSITION AND SIZE SLIGHTLY */}
+              {/* Floating Dumbbell */}
               <motion.div
-                animate={{ y: [0, -8, 0] }} // Slightly less vertical movement
+                animate={{ y: [0, -8, 0] }}
                 transition={{ duration: 3, repeat: Number.POSITIVE_INFINITY }}
                 className="absolute -top-3 -right-3 w-12 h-12 sm:w-14 sm:h-14 bg-gradient-to-r from-red-500 to-orange-500 dark:from-red-400 dark:to-orange-400 rounded-2xl flex items-center justify-center shadow-lg"
-                //  ^ Adjusted top/right to -3 from -4
-                //  ^ Adjusted base size to w-12 h-12 from w-14 h-14
               >
-                <Dumbbell className="w-6 h-6 sm:w-7 sm:h-7 text-white dark:text-black" /> 
-                {/* ^ Adjusted base icon size to w-6 h-6 */}
+                <Dumbbell className="w-6 h-6 sm:w-7 sm:h-7 text-white dark:text-black" />
               </motion.div>
 
-              {/* Floating Heart - ADJUSTED POSITION AND SIZE SLIGHTLY */}
+              {/* Floating Heart */}
               <motion.div
-                animate={{ y: [0, 8, 0] }} // Slightly less vertical movement
+                animate={{ y: [0, 8, 0] }}
                 transition={{ duration: 4, repeat: Number.POSITIVE_INFINITY }}
                 className="absolute -bottom-3 -left-3 w-10 h-10 sm:w-12 sm:h-12 bg-gray-200 dark:bg-gray-800 rounded-full flex items-center justify-center shadow-md"
-                //  ^ Adjusted bottom/left to -3 from -4
-                //  ^ Adjusted base size to w-10 h-10 from w-12 h-12
               >
                 <Heart className="w-5 h-5 sm:w-6 sm:h-6 text-gray-600 dark:text-gray-400" />
-                {/* ^ Adjusted base icon size to w-5 h-5 */}
               </motion.div>
             </motion.div>
           </div>
@@ -569,55 +664,106 @@ export default function HomePage() {
               </motion.div>
             ))}
           </div>
-
-          {/* Exercise Categories */}
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            className="mb-12 sm:mb-16"
-          >
-            <h3 className="text-2xl sm:text-3xl font-bold text-center mb-8 sm:mb-12">Exercise Categories</h3>
-            <div className="flex overflow-x-auto space-x-4 sm:space-x-6 pb-6">
-              {exerciseCategories.map((category, index) => (
-                <motion.div
-                  key={category.title}
-                  initial={{ opacity: 0, x: 50 }}
-                  whileInView={{ opacity: 1, x: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ delay: index * 0.1 }}
-                  className="flex-shrink-0 w-72 sm:w-80"
-                >
-                  <Card className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 hover:border-red-500 dark:hover:border-red-400 hover:shadow-lg hover:shadow-red-500/10 dark:hover:shadow-red-400/20 transition-all duration-300">
-                    <CardContent className="p-0">
-                      <div className="h-40 sm:h-48 bg-gray-100 dark:bg-gray-800 rounded-t-lg flex items-center justify-center">
-                        <div className="text-center">
-                          <category.icon className="w-12 h-12 sm:w-16 sm:h-16 text-gray-400 mx-auto mb-3 sm:mb-4" />
-                          <p className="text-sm sm:text-base text-gray-500">Exercise Demo</p>
-                        </div>
-                      </div>
-                      <div className="p-4 sm:p-6">
-                        <h4 className="text-lg sm:text-xl font-bold mb-3 sm:mb-4">{category.title}</h4>
-                        <ul className="space-y-2">
-                          {category.exercises.map((exercise, i) => (
-                            <li
-                              key={i}
-                              className="flex items-center text-sm sm:text-base text-gray-600 dark:text-gray-300"
-                            >
-                              <Play className="w-3 h-3 sm:w-4 sm:h-4 text-gray-400 mr-2 sm:mr-3" />
-                              {exercise}
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </motion.div>
-              ))}
-            </div>
-          </motion.div>
         </div>
       </section>
+
+      {/* === UPDATED EXERCISE DEMOS SECTION with IN-CARD Video Switching === */}
+      <section id="exercise-demos" className="py-12 sm:py-16 lg:py-20 px-0 sm:px-6 lg:px-8 bg-gray-100 dark:bg-gray-950 overflow-hidden">
+      <div className="container mx-auto relative z-10"> {/* Container for title and controls */}
+        <motion.div
+          initial={{ opacity: 0, y: 30 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          className="mb-8 sm:mb-12 text-center" // REMOVED sm:text-left, text-center will now apply to all sizes
+        >
+          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-black text-gray-900 dark:text-white">
+            EXERCISE <span className="text-primary dark:text-primary-light">DEMOS</span>
+          </h2>
+          <p className="mt-2 text-lg text-muted-foreground">
+            Explore video demonstrations for various exercises, categorized for your convenience.
+          </p>
+        </motion.div>
+      </div>
+
+        {loadingDemos ? ( <div className="container mx-auto text-center py-10"><p className="text-lg text-muted-foreground">Loading exercise demos...</p></div>
+        ) : exerciseDemoCategories.length === 0 ? ( <div className="container mx-auto text-center py-10"><p className="text-lg text-muted-foreground">No exercise demos available.</p></div>
+        ) : (
+          <div className="relative group">
+            <Button variant="outline" size="icon" className="absolute left-2 sm:left-4 top-1/2 -translate-y-1/2 z-30 bg-background/80 hover:bg-background backdrop-blur-sm shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300 hidden md:flex" onClick={() => scrollDemos('left')} aria-label="Scroll left"><ChevronLeft className="h-6 w-6" /></Button>
+            <Button variant="outline" size="icon" className="absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 z-30 bg-background/80 hover:bg-background backdrop-blur-sm shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300 hidden md:flex" onClick={() => scrollDemos('right')} aria-label="Scroll right"><ChevronRight className="h-6 w-6" /></Button>
+
+            <div ref={scrollContainerRef} className="flex overflow-x-auto space-x-4 sm:space-x-6 lg:space-x-8 py-4 px-4 sm:px-0 no-scrollbar snap-x-mandatory">
+              {exerciseDemoCategories.map((categoryGroup, index) => {
+                const currentVideoUrlForCard = activeVideos[categoryGroup.categoryName] || (categoryGroup.demos.length > 0 ? categoryGroup.demos[0].youtube_url : null);
+                const videoId = currentVideoUrlForCard ? getYouTubeVideoId(currentVideoUrlForCard) : null;
+                const currentlyPlayingDemo = categoryGroup.demos.find(d => d.youtube_url === currentVideoUrlForCard) || categoryGroup.demos[0];
+
+                return (
+                  <motion.div key={categoryGroup.categoryName} initial={{ opacity: 0, scale: 0.9 }} whileInView={{ opacity: 1, scale: 1 }} viewport={{ once: true, amount: 0.2 }} transition={{ delay: index * 0.05, duration: 0.4 }} className="flex-shrink-0 w-[85vw] sm:w-[400px] md:w-[420px] lg:w-[450px] snap-start" style={{ scrollMargin: '1rem' }}>
+                    <Card className="bg-card dark:bg-gray-900 border-border hover:shadow-xl dark:hover:shadow-primary/10 transition-all duration-300 flex flex-col h-full rounded-xl overflow-hidden">
+                      {videoId ? (
+                        <div className="aspect-video w-full bg-black"> {/* bg-black for letterboxing */}
+                          <iframe
+                            key={videoId} // Add key here to force re-render on src change
+                            width="100%" height="100%"
+                            src={`https://www.youtube.com/embed/${videoId}?autoplay=0&modestbranding=1&rel=0&showinfo=0&iv_load_policy=3&color=white&controls=1`}
+                            title={currentlyPlayingDemo?.title || "Exercise Demo"}
+                            frameBorder="0"
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                            allowFullScreen loading="lazy"
+                          ></iframe>
+                        </div>
+                      ) : (
+                        <div className="aspect-video w-full bg-gradient-to-br from-muted/50 via-muted to-muted/80 dark:from-gray-800/70 dark:via-gray-800 dark:to-gray-800/70 rounded-t-xl flex items-center justify-center p-4">
+                          {categoryGroup.icon ? <categoryGroup.icon className="w-16 h-16 text-primary/30 dark:text-primary-foreground/30" /> : <Play className="w-16 h-16 text-muted-foreground/50"/>}
+                        </div>
+                      )}
+                      
+                      <CardContent className="p-4 sm:p-5 flex flex-col flex-grow">
+                        <h3 className="text-lg sm:text-xl font-semibold text-card-foreground dark:text-white mb-1 truncate" title={currentlyPlayingDemo?.title || categoryGroup.categoryName}>
+                          {categoryGroup.categoryName}: {currentlyPlayingDemo?.title || "Select a Demo"}
+                        </h3>
+                        {currentlyPlayingDemo?.description && (
+                          <p className="text-xs text-muted-foreground mb-3 line-clamp-2 leading-relaxed">
+                            {currentlyPlayingDemo.description}
+                          </p>
+                        )}
+                        
+                        {categoryGroup.demos.length > 0 && (
+                          <>
+                            <p className="text-xs font-semibold text-muted-foreground mt-auto pt-2 mb-1 uppercase">More in {categoryGroup.categoryName}:</p>
+                            <div className="max-h-28 overflow-y-auto space-y-1 text-xs pr-1 no-scrollbar">
+                              {categoryGroup.demos.map(demo => (
+                                <button // Changed Link to button
+                                  key={demo.id}
+                                  onClick={() => handleVideoSelect(categoryGroup.categoryName, demo.youtube_url)}
+                                  disabled={!getYouTubeVideoId(demo.youtube_url)} // Disable if URL is not a valid video
+                                  className={`w-full group flex items-center space-x-1.5 text-left transition-colors py-1 px-1.5 rounded-md ${
+                                    currentVideoUrlForCard === demo.youtube_url 
+                                      ? 'bg-primary/10 text-primary dark:bg-primary/20 dark:text-primary-light font-medium' 
+                                      : 'text-muted-foreground hover:bg-muted/70 dark:hover:bg-gray-800/60 hover:text-card-foreground'
+                                  } ${!getYouTubeVideoId(demo.youtube_url) ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                >
+                                  <Play size={14} className={`flex-shrink-0 ${currentVideoUrlForCard === demo.youtube_url ? 'text-primary' : 'text-primary/70 group-hover:text-primary'}`}/> 
+                                  <span className="truncate">{demo.title}</span>
+                                  {!getYouTubeVideoId(demo.youtube_url) && <span className="ml-auto text-xs text-destructive/70">(Invalid Link)</span>}
+                                </button>
+                              ))}
+                            </div>
+                          </>
+                        )}
+                        {categoryGroup.demos.length === 0 && <p className="text-sm text-muted-foreground py-4 text-center">No demos in this category.</p>}
+                      </CardContent>
+                    </Card>
+                  </motion.div>
+                );
+              })}
+              <div className="flex-shrink-0 w-1 sm:w-px"></div>
+            </div>
+          </div>
+        )}
+      </section>
+      {/* === END: EXERCISE DEMOS SECTION === */}
 
       {/* Community Section */}
       <section id="community" className="py-12 sm:py-16 lg:py-20 px-4 sm:px-6 lg:px-8 bg-gray-50 dark:bg-gray-950">
