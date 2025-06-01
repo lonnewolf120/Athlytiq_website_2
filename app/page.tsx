@@ -514,7 +514,7 @@ export default function HomePage() {
               initial={{ opacity: 0, x: 50 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.8, delay: 0.3 }}
-              className="relative order-first lg:order-last"
+              className="relative order-last lg:order-last"
             >
               <div className="relative mx-auto w-80 sm:w-72 lg:w-80 max-w-full h-[35rem] sm:h-[34rem] lg:h-[40rem] bg-gray-900 dark:bg-white rounded-3xl p-2 shadow-2xl">
                 <div className="w-full h-full bg-white dark:bg-gray-900 rounded-2xl overflow-hidden flex items-center justify-center">
