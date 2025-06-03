@@ -1,0 +1,2 @@
+npm install jspdf jspdf-autotable --legacy-peer-deps
+npm install @google/generative-ai --legacy-peer-deps

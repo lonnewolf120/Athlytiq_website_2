@@ -1,12 +1,15 @@
 // app/api/analyze-food/route.ts
-import { GoogleGenerativeAI, HarmCategory, HarmBlockThreshold, Part } from "@google/generative-ai";
+import { 
+    GoogleGenerativeAI, 
+    HarmCategory, 
+    HarmBlockThreshold, 
+    Part, 
+    Content,
+    SafetySetting // <--- IMPORT THIS
+} from "@google/generative-ai";
 import { NextRequest, NextResponse } from "next/server";
 
-// IMPORTANT: CHOOSE A MULTIMODAL MODEL THAT SUPPORTS IMAGE INPUT
-// e.g., "gemini-1.5-pro-latest" or the vision-enabled "gemini-1.5-flash-latest"
-// Check Google AI documentation for the exact model names available to your API key.
-const MODEL_NAME = "gemini-1.5-flash-latest"; // OR "gemini-1.5-flash-latest" (ensure it's vision capable)
-
+const MODEL_NAME = "gemini-1.5-flash-latest"; 
 const API_KEY = process.env.GEMINI_API_KEY || "";
 
 export async function POST(req: NextRequest) {
@@ -15,42 +18,85 @@ if (!API_KEY) {
 }
 
 try {
-    const { image_data, mime_type, prompt } = await req.json(); // image_data is base64 encoded
+    const { 
+        image_data,
+        mime_type,
+        prompt,
+        history 
+    } = await req.json();
 
-    if (!image_data || !mime_type || !prompt) {
-    return NextResponse.json({ error: "Missing image_data, mime_type, or prompt" }, { status: 400 });
+    if (!prompt) {
+    return NextResponse.json({ error: "Missing prompt" }, { status: 400 });
     }
 
     const genAI = new GoogleGenerativeAI(API_KEY);
     const model = genAI.getGenerativeModel({ model: MODEL_NAME });
 
+    const generationConfig = {
+    temperature: 0.7,
+    maxOutputTokens: 2048,
+    };
+
+    // EXPLICITLY TYPE safetySettings
+    const safetySettings: SafetySetting[] = [ 
+    { category: HarmCategory.HARM_CATEGORY_HARASSMENT, threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE },
+    { category: HarmCategory.HARM_CATEGORY_HATE_SPEECH, threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE },
+    { category: HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT, threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE },
+    { category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT, threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE },
+    ];
+
+    const contentParts: (string | Part)[] = [];
+
+    const geminiHistory: Content[] = (history || []).map((msg: {role: string, text: string}) => ({
+        role: msg.role === "system" ? "user" : (msg.role as "user" | "model"), // Ensure role is 'user' or 'model'
+        parts: [{ text: msg.text }]
+    }));
+
+    if (image_data && mime_type) {
     const imagePart: Part = {
-    inlineData: {
-        data: image_data, // Base64 string
-        mimeType: mime_type,
-    },
+        inlineData: { data: image_data, mimeType: mime_type },
     };
+    contentParts.push(prompt); 
+    contentParts.push(imagePart); 
+    } else {
+    contentParts.push(prompt);
+    }
+    
+    const requestContents: Content[] = [
+        ...geminiHistory,
+        { role: "user", parts: contentParts.map(p => typeof p === 'string' ? {text: p} : p) }
+    ];
 
-    const textPart: Part = {
-    text: prompt,
-    };
+    // Log the request contents for debugging if needed
+    // console.log("Requesting Gemini with contents:", JSON.stringify(requestContents, null, 2));
 
-    const result = await model.generateContent([textPart, imagePart]); // Order can matter, text prompt first often works well
-    // Or: await model.generateContent([prompt, imagePart]); if the model prefers prompt as string first
+    const result = await model.generateContent({
+        contents: requestContents,
+        generationConfig,
+        safetySettings // Now correctly typed
+    });
 
     const response = result.response;
+    
+    if (!response) {
+        // Handle cases where the response might be undefined (e.g., if blocked by safety settings without throwing an error directly)
+        console.error("Gemini API returned an undefined response. This might be due to safety settings or other content filters.");
+        return NextResponse.json({ error: "AI response was blocked or empty. Please try a different prompt or image." }, { status: 500 });
+    }
+
     const analysisText = response.text();
 
     return NextResponse.json({ analysis: analysisText });
 
 } catch (error: any) {
-    console.error("Error calling Gemini API for food analysis:", error);
-    let errorMessage = "Failed to get response from AI for food analysis.";
-    if (error.message) {
-    errorMessage = error.message;
-    }
+    console.error("Error in /api/analyze-food:", error);
+    let errorMessage = "AI analysis request failed.";
+    if (error.message) errorMessage = error.message;
+    // Check for specific Gemini API error structures if available
     if (error.response && error.response.data && error.response.data.error && error.response.data.error.message) {
         errorMessage = error.response.data.error.message;
+    } else if (error.details) { // Sometimes Gemini errors have a 'details' field
+        errorMessage += ` Details: ${error.details}`;
     }
     return NextResponse.json({ error: errorMessage, details: error.toString() }, { status: 500 });
 }

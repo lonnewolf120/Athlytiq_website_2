@@ -275,12 +275,14 @@ export default function HomePage() {
       title: "AI Nutrition",
       description: "Intelligent diet recommendations based on your goals, preferences, and location.",
       features: ["Meal planning", "Macro tracking", "Smart recipes", "Nutrition coaching"],
+      path: "/nutrition-coach",
     },
     {
       icon: Camera,
       title: "Food Scanning",
       description: "Instant food recognition and nutritional analysis using computer vision technology.",
       features: ["Food recognition", "Calorie counting", "Macro analysis", "Nutrition database"],
+      path: "/food-scanner",
     },
   ]
 
@@ -612,15 +614,10 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Features Section */}
+      {/* Features Section - UPDATED LINKING */}
       <section id="features" className="py-12 sm:py-16 lg:py-20 px-4 sm:px-6 lg:px-8">
         <div className="container mx-auto relative z-10">
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            className="text-center mb-12 sm:mb-16"
-          >
+          <motion.div /* ... section title ... */ >
             <h2 className="text-3xl sm:text-4xl lg:text-5xl font-black mb-4 sm:mb-6 text-gray-900 dark:text-white">
               POWERFUL <span className="text-gray-600 dark:text-gray-300">FEATURES</span>
             </h2>
@@ -630,39 +627,55 @@ export default function HomePage() {
           </motion.div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 sm:gap-12 mb-12 sm:mb-16">
-            {mainFeatures.map((feature, index) => (
-              <motion.div
-                key={feature.title}
-                initial={{ opacity: 0, x: index % 2 === 0 ? -30 : 30 }}
-                whileInView={{ opacity: 1, x: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: index * 0.2 }}
-              >
-                <Card className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 hover:border-red-500 dark:hover:border-red-400 hover:shadow-lg hover:shadow-red-500/10 dark:hover:shadow-red-400/20 transition-all duration-300 h-full">
-                  <CardContent className="p-6 sm:p-8">
+            {mainFeatures.map((feature, index) => {
+              // Card content is defined once
+              const CardItself = (
+                <Card className="bg-card dark:bg-gray-900 border-border hover:border-primary dark:hover:border-primary-light hover:shadow-xl dark:hover:shadow-primary/20 transition-all duration-300 h-full flex flex-col group-hover:ring-2 group-hover:ring-primary/50 dark:group-hover:ring-primary-light/50 rounded-xl"> {/* Added group-hover effects to card */}
+                  <CardContent className="p-6 sm:p-8 flex flex-col flex-grow">
                     <div className="flex flex-col sm:flex-row items-start space-y-4 sm:space-y-0 sm:space-x-6 mb-6">
-                      <div className="w-12 h-12 sm:w-16 sm:h-16 bg-gradient-to-r from-red-500 to-orange-500 dark:from-red-400 dark:to-orange-400 rounded-2xl flex items-center justify-center flex-shrink-0">
-                        <feature.icon className="w-6 h-6 sm:w-8 sm:h-8 text-white dark:text-black" />
+                      <div className="p-3 bg-gradient-to-br from-primary via-red-500 to-orange-500 rounded-xl shadow-lg flex-shrink-0">
+                        <feature.icon className="w-8 h-8 sm:w-10 sm:h-10 text-white" />
                       </div>
                       <div>
-                        <h3 className="text-xl sm:text-2xl font-bold mb-2 sm:mb-3">{feature.title}</h3>
-                        <p className="text-sm sm:text-base text-gray-600 dark:text-gray-300 leading-relaxed">
+                        <h3 className="text-xl sm:text-2xl font-bold mb-2 sm:mb-3 text-card-foreground dark:text-white">{feature.title}</h3>
+                        <p className="text-sm sm:text-base text-muted-foreground leading-relaxed">
                           {feature.description}
                         </p>
                       </div>
                     </div>
-                    <ul className="space-y-2 sm:space-y-3">
+                    <ul className="space-y-2 sm:space-y-3 mt-auto pt-4 border-t border-border/20">
                       {feature.features.map((item, i) => (
-                        <li key={i} className="flex items-center text-sm sm:text-base text-gray-600 dark:text-gray-300">
-                          <div className="w-2 h-2 bg-gray-900 dark:bg-white rounded-full mr-3 sm:mr-4"></div>
+                        <li key={i} className="flex items-center text-sm text-muted-foreground">
+                          <CheckCircle className="w-4 h-4 text-primary dark:text-primary-light mr-2.5 flex-shrink-0" />
                           {item}
                         </li>
                       ))}
                     </ul>
                   </CardContent>
                 </Card>
-              </motion.div>
-            ))}
+              );
+
+              return (
+                <motion.div
+                  key={feature.title}
+                  initial={{ opacity: 0, x: index % 2 === 0 ? -30 : 30 }}
+                  whileInView={{ opacity: 1, x: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: index * 0.2, type: "spring", stiffness: 100 }}
+                  className="h-full" // Ensure motion div takes full height for consistent card height
+                >
+                  {feature.path ? (
+                    <Link href={feature.path} className="block h-full w-full group focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 rounded-xl" aria-label={`Learn more about ${feature.title}`}>
+                      {/* The Link component itself will act as the clickable area */}
+                      {CardItself}
+                    </Link>
+                  ) : (
+                    // For non-linkable cards, just render the card
+                    <div className="h-full">{CardItself}</div>
+                  )}
+                </motion.div>
+              );
+            })}
           </div>
         </div>
       </section>
