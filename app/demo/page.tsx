@@ -135,13 +135,13 @@ export default function DemoPage() {
           )}
           {/* Fallback if no video ID is ready to play or if ID extraction failed */}
           {(!currentPlayingVideoId || currentPlayingVideoId.startsWith("VIDEO_ID_EXTRACTION_FAILED")) && (
-             <Card className="mb-12 shadow-lg">
+            <Card className="mb-12 shadow-lg">
                 <CardContent className="p-8 text-center text-muted-foreground">
                     <p className="text-lg">No video loaded or video link is invalid.</p>
                     <p className="text-sm mt-2">Paste a YouTube URL above or select a featured demo below.</p>
                     {MAIN_APP_DEMO_VIDEO_ID.startsWith("VIDEO_ID_EXTRACTION_FAILED") && <p className="text-xs mt-1 text-destructive">(Developer: Main demo video URL is invalid or could not be processed.)</p>}
                 </CardContent>
-             </Card>
+            </Card>
           )}
 
           {/* Predefined Demo Videos Grid */}
@@ -159,7 +159,7 @@ export default function DemoPage() {
                   onClick={() => isVideoLinkValid && handlePredefinedVideoSelect(video.id)}
                 >
                   <div className="aspect-video bg-muted dark:bg-gray-800 rounded-t-lg flex items-center justify-center relative overflow-hidden">
-                     <img 
+                    <img 
                         src={isVideoLinkValid ? `https://img.youtube.com/vi/${video.id}/mqdefault.jpg` : "/placeholder-logo.svg"} // Use a placeholder if link is bad
                         alt={`${video.title} thumbnail`}
                         className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
@@ -174,17 +174,17 @@ export default function DemoPage() {
                                 parent.appendChild(fallbackIconContainer);
                             }
                         }}
-                     />
-                     {isVideoLinkValid && (
+                    />
+                    {isVideoLinkValid && (
                         <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/40 to-transparent flex items-end justify-start p-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                             <Play className="w-8 h-8 text-white drop-shadow-lg" />
                         </div>
-                     )}
-                     {!isVideoLinkValid && (
+                    )}
+                    {!isVideoLinkValid && (
                         <div className="absolute inset-0 bg-muted dark:bg-gray-800 flex items-center justify-center">
-                           <p className="text-xs text-destructive p-2 text-center">Video link issue</p>
+                          <p className="text-xs text-destructive p-2 text-center">Video link issue</p>
                         </div>
-                     )}
+                    )}
                   </div>
                   <CardContent className="p-4 flex-grow flex flex-col">
                     <h3 className="font-semibold text-base sm:text-lg mb-1.5 flex-grow line-clamp-2">{video.title}</h3>
@@ -208,7 +208,7 @@ export default function DemoPage() {
           {/* Call to Action */}
           <Card className="bg-gradient-to-r from-primary via-primary/80 to-orange-500 text-white">
             {/* ... CTA Content from your previous code ... */}
-             <CardContent className="p-6 sm:p-8 text-center">
+            <CardContent className="p-6 sm:p-8 text-center">
               <h3 className="text-xl sm:text-2xl font-bold mb-4">Ready to Get Started?</h3>
               <p className="text-sm sm:text-base mb-6 opacity-90">
                 Download Aithletiq today and start your AI-powered fitness journey!
@@ -223,7 +223,7 @@ export default function DemoPage() {
                   <Button
                     size="lg"
                     variant="outline"
-                    className="border-white text-black dark:hover:bg-white dark:hover:text-black dark:hover:font-bold hover:bg-black hover:font-bold hover:text-white w-full sm:w-auto shadow-md"
+                    className="border-white text-black dark:hover:bg-white dark:hover:text-black dark:hover:font-bold dark:text-white hover:bg-black hover:font-bold hover:text-white w-full sm:w-auto shadow-md"
                   >
                     Sign Up Free
                   </Button>
