@@ -79,41 +79,77 @@ export default function ProfilePage() {
     getProfile()
   }, [router, toast])
 
+  // In app/profile/page.tsx
   const handleSave = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!profile) return
+    e.preventDefault();
+    if (!profile || !profile.id) {
+      toast({ title: "Error", description: "Profile data is missing or user not fully loaded.", variant: "destructive" });
+      return;
+    }
 
-    setSaving(true)
+    setSaving(true);
 
     try {
-      const { error } = await supabase.from("profiles").upsert({
-        id: profile.id,
+      const profileDataToSave = {
+        // id: profile.id, // id is used in .eq() for upsert, not usually in the update payload itself unless it's part of composite key
         email: profile.email,
         full_name: profile.full_name,
         age: profile.age,
         weight: profile.weight,
         height: profile.height,
         fitness_goal: profile.fitness_goal,
-        updated_at: new Date().toISOString(),
-      })
+        // updated_at: new Date().toISOString(), // Remove if using DB trigger
+      };
 
-      if (error) throw error
+      // Use .eq('id', profile.id) to specify which row to upsert
+      const { data: upsertData, error: upsertError } = await supabase
+        .from("profiles")
+        .update(profileDataToSave) // Use update if you are sure profile exists from useEffect
+        .eq('id', profile.id)       // and handle_new_user trigger creates it.
+        .select()                 // Optionally select to get the updated row back
+        .single();                // If expecting one row
+
+      // If your useEffect guarantees a profile object (even a default one for new users)
+      // that already has the user's ID, then an upsert might look like this:
+      // const { data: upsertData, error: upsertError } = await supabase
+      //  .from("profiles")
+      //  .upsert({ ...profileDataToSave, id: profile.id }) // Pass ID for upsert
+      //  .eq('id', profile.id) // Still good to have .eq for clarity on the WHERE condition of the UPDATE part
+      //  .select()
+      //  .single();
+
+
+      if (upsertError) {
+        console.error("Supabase upsert/update error:", upsertError);
+        throw upsertError; 
+      }
 
       toast({
         title: "Success!",
-        description: "Profile updated successfully",
-      })
-    } catch (error) {
-      console.error("Error saving profile:", error)
+        description: "Profile updated successfully.",
+      });
+      // Optionally re-fetch profile or update state if 'select()' returned data
+      if (upsertData) {
+          setProfile(upsertData as Profile);
+      }
+
+    } catch (error: any) {
+      console.error("Error saving profile (in catch):", error);
+      let description = "Failed to save profile. Please try again.";
+      if (error && error.message) {
+        description = error.message;
+        if (error.details) description += ` Details: ${error.details}`;
+        if (error.hint) description += ` Hint: ${error.hint}`;
+      }
       toast({
         title: "Error",
-        description: "Failed to save profile",
+        description: description,
         variant: "destructive",
-      })
+      });
     } finally {
-      setSaving(false)
+      setSaving(false);
     }
-  }
+  };
 
   if (loading) {
     return (

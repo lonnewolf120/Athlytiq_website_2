@@ -223,7 +223,7 @@ export default function DemoPage() {
                   <Button
                     size="lg"
                     variant="outline"
-                    className="border-white text-white hover:bg-white hover:text-primary w-full sm:w-auto shadow-md"
+                    className="border-white text-black dark:hover:bg-white dark:hover:text-black dark:hover:font-bold hover:bg-black hover:font-bold hover:text-white w-full sm:w-auto shadow-md"
                   >
                     Sign Up Free
                   </Button>
